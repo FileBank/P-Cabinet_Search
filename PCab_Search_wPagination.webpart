@@ -1,0 +1,609 @@
+﻿<webParts>
+  <webPart xmlns="http://schemas.microsoft.com/WebPart/v3">
+    <metaData>
+      <type name="Microsoft.SharePoint.WebPartPages.ScriptEditorWebPart, Microsoft.SharePoint, Version=16.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c" />
+      <importErrorMessage>Cannot import this Web Part.</importErrorMessage>
+    </metaData>
+    <data>
+      <properties>
+        <property name="ExportMode" type="exportmode">All</property>
+        <property name="HelpUrl" type="string" />
+        <property name="Hidden" type="bool">False</property>
+        <property name="Description" type="string">Allows authors to insert HTML snippets or scripts.</property>
+        <property name="Content" type="string">&lt;style&gt;
+  .rower {
+    display: flex;
+    margin-left: 5px;
+    margin-right: 5px;
+  }
+
+  .columnal.search {
+    flex: 50%;
+    overflow: auto;
+    padding: 0px 0px;
+  }
+
+  .columnal.cleared {
+    overflow: visible;
+  }
+
+  // Clearfix (clear floats) 
+  .rower::after {
+    content: "";
+    clear: both;
+    display: table;
+  }
+
+  #vcab {
+    display: none;
+  }
+
+  #pcab {
+    display: none;
+  }
+
+  #copiedMsg {
+    display: none;
+    margin-left: 40px;
+    padding: 5px 10px;
+    background-color: #000000df;
+    font-size: 13px;
+    border-radius: 4px;
+    color: #fff;
+  }
+
+  #dframe {
+    margin-top: 5px;
+    font-family: 'Lato', sans-serif;
+    display: none;
+    background-color: #FFFFFF;
+  }
+
+  table#dframe th,
+  td {
+    border: none;
+    border-spacing: 0px;
+  }
+
+  table#dframe tr:hover {
+    background-color: #e8f4fa;
+  }
+
+  table#dframe thead:hover {
+    background-color: #FFFFFF;
+  }
+
+  #visButton {
+    transition-duration: 0.4s;
+    border-radius: 4px;
+    background-color: #a8a8a8;
+    border: 1px solid #a8a8a8;
+  }
+
+  #visButton:hover {
+    background-color: #cde6f7;
+    border: 1px solid #cde6f7;
+  }
+
+  #pcablink {
+    transition-duration: 0.4s;
+    border-radius: 4px;
+    padding: 7px 15px;
+    background-color: #0072c6;
+    color: white;
+    margin-bottom: 5px;
+    display: inline-block;
+  }
+
+  #pcablink:hover {
+    background-color: #a8a8a8;
+    color: black;
+    text-decoration: none;
+  }
+
+  .showing {
+    background-color: #f0f4fa;
+    border-left: solid #c2c2c2 1px;
+  }
+
+  #pcabtable.clearedpcab {
+    flex: 20%;
+    background-color: #FFFFFF;
+    border: none;
+  }
+
+  .hidden {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+
+  .pagination {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+
+  .pagination button {
+    padding: 5px 5px;
+    margin: 5px 5px;
+    cursor: pointer;
+    border-radius: 1px;
+    border: none;
+    background-color: #e0e0e0;
+  }
+
+  .pagination button.active {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .pagination button:hover {
+    background-color: #e8f4fa;
+  }
+
+&lt;/style&gt;
+
+&lt;script src="https://cdn.socket.io/4.4.1/socket.io.min.js"&gt; &lt;/script&gt;
+&lt;script type="text/javascript"&gt;&lt;/script&gt;
+&lt;script&gt;
+  function sendSearchAllQuery(data, customerNumber) {
+    if (document.getElementById('rowDiv') == null) {
+      var rowDiv = document.createElement('div');
+      rowDiv.classList.add('rower');
+      rowDiv.setAttribute('id', 'rowDiv');
+      var leftColDiv = document.createElement('div');
+      leftColDiv.setAttribute('id', 'vcabtable');
+      leftColDiv.classList.add('columnal');
+      leftColDiv.classList.add('search');
+      leftColDiv.style.paddingRight = '15px';
+      var rightColDiv = document.createElement('div');
+      rightColDiv.classList.add('columnal');
+      rightColDiv.classList.add('search');
+      rightColDiv.style.paddingLeft = '25px';
+      rightColDiv.setAttribute('id', 'pcabtable');
+      rightColDiv.setAttribute('width', '500px');
+      rightColDiv.setAttribute('margin-left', '0px');
+      rowDiv.appendChild(leftColDiv);
+      rowDiv.appendChild(rightColDiv);
+      var contentDiv = document.getElementById('WebPartWPQ1');
+      var navDiv = document.getElementById('scriptPagingWPQ1');
+      var desc = contentDiv.getElementsByTagName('table');
+      var tbl = desc[0];
+      leftColDiv.appendChild(tbl);
+      contentDiv.insertBefore(rowDiv, navDiv);
+    }
+    var pcabtable = document.getElementById('pcabtable');
+    var vcabtable = document.getElementById('vcabtable');
+    if (pcabtable.classList.contains('pcabcleared')) {
+      pcabtable.classList.remove('pcabcleared');
+      pcabtable.classList.add('search');
+    }
+    if (vcabtable.classList.contains('cleared')) {
+      vcabtable.classList.remove('cleared');
+      vcabtable.classList.add('search');
+    }
+
+    document.getElementById('pcabtable').innerHTML = "&lt;br&gt;&lt;br&gt;Searching P-Cabinet...";
+    document.getElementById('vcabtable').style.overflow = 'visible';
+    fetch('https://spapi.filebankinc.com:5000/search_physical_library', {
+
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query_text: data,
+          customer_number: customerNumber
+        }),
+      })
+      .then(response =&gt; response.json())
+      .then(data =&gt; {
+        var html_snippet = '&lt;h4 id="searchHeader" style="margin-top: 20px; display:inline-block"&gt;&lt;b&gt;P-Cabinet Search Results&lt;/b&gt;&lt;/h4&gt;&lt;button type="button" id="visButton" onClick="showhide()"&gt;Hide Results&lt;/button&gt; &lt;br&gt; &lt;a id="pcablink" href="https://physical.filebankinc.com/DHSRMWeb/Application/Login" target="_blank"&gt;Open P-Cabinet&lt;/a&gt;&lt;span style="margin-left: 25px;" id="copiedMsg"&gt;Item Code Copied!&lt;/span&gt;'
+        document.getElementById('pcabtable').innerHTML = html_snippet + data; // Assuming the server sends back a JSON object with a message field
+
+        var count = document.getElementById('dframe').rows.length - 1;
+        document.getElementById('pcablink').style.display = 'none';
+        document.getElementById("visButton").innerText = "Show Results (" + count + ")";
+        var tbl = document.getElementById('dframe');
+        tbl.classList.add('ms-listviewable');
+        for (var i = 0; i &lt; tbl.rows.length; i++) {
+          if (i == 0) {
+            tbl.rows[i].classList.add('ms-viewheadertr', 'ms-vhltr');
+          } else {
+            tbl.rows[i].classList.add('ms-itemHoverEnabled', 'ms-itemhover');
+          }
+          for (var j = 0; j &lt; tbl.rows[i].cells.length; j++) {
+            if (i == 0) {
+              tbl.rows[i].cells[j].classList.add('ms-vh2');
+            } else {
+              tbl.rows[i].cells[j].classList.add('ms-cellstyle', 'ms-vb2');
+            }
+          }
+        }
+        const content = document.getElementById('dframe');
+        const itemsPerPage = 25;
+        let currentPage = 0;
+        const items = Array.from(content.getElementsByTagName('tr')).slice(1);
+        if (Math.ceil(items.length / itemsPerPage) &gt; 5) {
+          initPageButtons();
+          showPageLim(currentPage);
+        } else {
+          createPageButtons();
+          showPage(currentPage);
+        }
+
+      })
+      .catch((error) =&gt; {
+        console.error('Error:', error);
+      });
+  }
+
+  function initPageButtons() {
+    const content = document.getElementById('dframe');
+    const itemsPerPage = 25;
+    const items = Array.from(content.getElementsByTagName('tr')).slice(1);
+
+    const totalPages = Math.ceil(items.length / itemsPerPage);
+    const paginationContainer = document.createElement('div');
+    paginationContainer.id = 'paginContainer';
+    const paginationDiv = document.getElementById('pcabtable').appendChild(paginationContainer);
+    paginationContainer.classList.add('pagination');
+    // Add page buttons
+    for (let i = 0; i &lt; 4; i++) {
+      const pageButton = document.createElement('button');
+      pageButton.textContent = i + 1;
+      pageButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        currentPage = i;
+        showPageLim(currentPage);
+        updateActiveButtonLim(currentPage);
+      });
+      document.getElementById('dframe').appendChild(paginationContainer);
+      paginationDiv.appendChild(pageButton);
+    }
+    // make '...' to denote more pages
+    var ellipsis = document.createElement('button');
+    ellipsis.textContent = '...';
+    ellipsis.addEventListener('click', function(event){
+      event.preventDefault();
+    });
+
+    document.getElementById('dframe').appendChild(paginationContainer);
+    paginationDiv.appendChild(ellipsis);
+
+    // make last page button
+    var pageButton = document.createElement('button');
+    pageButton.textContent = totalPages;
+    pageButton.addEventListener('click', function(event) {
+      event.preventDefault();
+      currentPage = totalPages - 1;
+      showPageLim(currentPage);
+      updateActiveButtonLim(currentPage);
+    });
+    document.getElementById('dframe').appendChild(paginationContainer);
+    paginationDiv.appendChild(pageButton);
+  }
+
+  // shows page, calls button update 
+  function showPageLim(page) {
+    const content = document.getElementById('dframe');
+    const itemsPerPage = 25;
+    const items = Array.from(content.getElementsByTagName('tr')).slice(1);
+    const startIndex = page * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    items.forEach((item, index) =&gt; {
+      item.classList.toggle('hidden', index &lt; startIndex || index &gt;= endIndex);
+    });
+    updateActiveButtonLim(page);
+
+  }
+
+  /**
+   * remakes buttons and shows active page
+   */
+  function updateActiveButtonLim(page) {
+    const pageButtons = document.querySelectorAll('.pagination button');
+    const content = document.getElementById('dframe');
+    const itemsPerPage = 25;
+    const items = Array.from(content.getElementsByTagName('tr')).slice(1);
+    const paginationContainer = document.getElementById('paginContainer');
+    const paginationDiv = document.getElementById('pcabtable').appendChild(paginationContainer);
+    const totalPages = Math.ceil(items.length / itemsPerPage);
+    // remove all buttons
+    pageButtons.forEach((button, index) =&gt; {
+      button.remove();
+    });
+
+    // if page is in first 3, just display init buttons
+    if (page &lt;= 2) {
+      for (let i = 0; i &lt; 4; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i + 1;
+        pageButton.addEventListener('click', function(event) {
+          event.preventDefault();
+          currentPage = i;
+          showPageLim(currentPage);
+          updateActiveButtonLim(currentPage);
+        });
+        if (i === page) {
+          pageButton.classList.add('active');
+        }
+        document.getElementById('dframe').appendChild(paginationContainer);
+        paginationDiv.appendChild(pageButton);
+      }
+
+      // make last page button and '...' to denote more pages
+      var ellipsis = document.createElement('button');
+      ellipsis.textContent = '...';
+      ellipsis.addEventListener('click', function(event){
+        event.preventDefault();
+      });
+      document.getElementById('dframe').appendChild(paginationContainer);
+      paginationDiv.appendChild(ellipsis);
+      // last page button
+      var pageButton = document.createElement('button');
+      pageButton.textContent = totalPages;
+      pageButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        currentPage = totalPages - 1;
+        showPageLim(currentPage);
+        updateActiveButtonLim(currentPage);
+      });
+      document.getElementById('dframe').appendChild(paginationContainer);
+      paginationDiv.appendChild(pageButton);
+    } else if (page &gt;= totalPages - 3) {
+      // make 1, ..., and last 4 buttons
+      
+      // first page button
+      var pageButton = document.createElement('button');
+      pageButton.textContent = '1';
+      pageButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        currentPage = 0;
+        showPageLim(currentPage);
+        updateActiveButtonLim(currentPage);
+      });
+      document.getElementById('dframe').appendChild(paginationContainer);
+      paginationDiv.appendChild(pageButton);
+
+      // make  '...' to denote more pages
+      var ellipsis = document.createElement('button');
+      ellipsis.textContent = '...';
+      ellipsis.addEventListener('click', function(event){
+        event.preventDefault();
+      });
+      document.getElementById('dframe').appendChild(paginationContainer);
+      paginationDiv.appendChild(ellipsis);
+
+      // make last 4 buttons
+      for (let i = totalPages - 4; i &lt; totalPages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i + 1;
+        pageButton.addEventListener('click', function(event) {
+          event.preventDefault();
+          currentPage = i;
+          showPageLim(currentPage);
+          updateActiveButtonLim(currentPage);
+        });
+        if (i === page) {
+          pageButton.classList.add('active');
+        }
+        document.getElementById('dframe').appendChild(paginationContainer);
+        paginationDiv.appendChild(pageButton);
+      }
+    } else {
+       // first page button
+      var pageButton = document.createElement('button');
+      pageButton.textContent = 'First';
+      pageButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        currentPage = 0;
+        showPageLim(currentPage);
+        updateActiveButtonLim(currentPage);
+      });
+      document.getElementById('dframe').appendChild(paginationContainer);
+      paginationDiv.appendChild(pageButton);
+
+      // make  '...' to denote more pages
+      var ellipsis = document.createElement('button');
+      ellipsis.textContent = '...';
+      ellipsis.addEventListener('click', function(event){
+        event.preventDefault();
+      });
+      document.getElementById('dframe').appendChild(paginationContainer);
+      paginationDiv.appendChild(ellipsis);
+
+      for (let i = page-1; i &lt; page+2; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i + 1;
+        pageButton.addEventListener('click', function(event) {
+          event.preventDefault();
+          currentPage = i;
+          showPageLim(currentPage);
+          updateActiveButtonLim(currentPage);
+        });
+        if (i === page) {
+          pageButton.classList.add('active');
+        }
+        document.getElementById('dframe').appendChild(paginationContainer);
+        paginationDiv.appendChild(pageButton);
+      }
+      // make last page button and '...' to denote more pages
+      var ellipsis = document.createElement('button');
+      ellipsis.textContent = '...';
+      ellipsis.addEventListener('click', function(event){
+        event.preventDefault();
+      });
+      document.getElementById('dframe').appendChild(paginationContainer);
+      paginationDiv.appendChild(ellipsis);
+      // last page button
+      var pageButton = document.createElement('button');
+      pageButton.textContent = 'Last';
+      pageButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        currentPage = totalPages - 1;
+        showPageLim(currentPage);
+        updateActiveButtonLim(currentPage);
+      });
+      document.getElementById('dframe').appendChild(paginationContainer);
+      paginationDiv.appendChild(pageButton);
+    }
+
+  }
+
+
+  function showPage(page) {
+    const content = document.getElementById('dframe');
+    const itemsPerPage = 25;
+    const items = Array.from(content.getElementsByTagName('tr')).slice(1);
+    const startIndex = page * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    items.forEach((item, index) =&gt; {
+      item.classList.toggle('hidden', index &lt; startIndex || index &gt;= endIndex);
+    });
+    updateActiveButtonStates(page);
+  }
+
+  function createPageButtons() {
+    const content = document.getElementById('dframe');
+    const itemsPerPage = 25;
+    const items = Array.from(content.getElementsByTagName('tr')).slice(1);
+
+    const totalPages = Math.ceil(items.length / itemsPerPage);
+    const paginationContainer = document.createElement('div');
+    const paginationDiv = document.getElementById('pcabtable').appendChild(paginationContainer);
+    paginationContainer.classList.add('pagination');
+    // Add page buttons
+    for (let i = 0; i &lt; totalPages; i++) {
+      const pageButton = document.createElement('button');
+      pageButton.textContent = i + 1;
+      pageButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        currentPage = i;
+        showPage(currentPage);
+        updateActiveButtonStates(currentPage);
+      });
+
+      document.getElementById('dframe').appendChild(paginationContainer);
+      paginationDiv.appendChild(pageButton);
+    }
+  }
+
+  function updateActiveButtonStates(currentPage) {
+    const pageButtons = document.querySelectorAll('.pagination button');
+    pageButtons.forEach((button, index) =&gt; {
+      if (index === currentPage) {
+        button.classList.add('active');
+      } else {
+        button.classList.remove('active');
+      }
+    });
+  }
+
+  function copyItemCode(evt) {
+    console.log(evt.innerText);
+    navigator.clipboard.writeText(evt.innerText);
+    var msg = document.getElementById('copiedMsg');
+    msg.style.display = "inline-block";
+    setTimeout(function() {
+      msg.style.display = "none";
+    }, 3500);
+
+  }
+
+  function showhide() {
+    var btn = document.getElementById('visButton');
+    var table = document.getElementById('dframe');
+    var vcab = document.getElementById('vcabtable');
+    var pcablink = document.getElementById('pcablink');
+    var count = document.getElementById('dframe').rows.length - 1;
+    if (btn.innerHTML == 'Hide Results (' + count + ')') {
+      btn.innerHTML = "Show Results (" + count + ")";
+      table.style.display = "none";
+      vcab.style.overflow = "visible";
+      pcablink.style.display = 'none';
+      document.getElementById('pcabtable').style.marginRight = '5px';
+      document.getElementById('pcabtable').classList.remove('showing');
+    } else {
+      btn.innerHTML = 'Hide Results (' + count + ')';
+      table.style.display = "block";
+      document.getElementById('pcabtable').style.paddingRight = '15px';
+      document.getElementById('pcabtable').style.marginRight = '15px';
+      vcab.style.overflow = "auto";
+      pcablink.style.display = 'inline-block';
+      document.getElementById('pcabtable').classList.add('showing');
+    }
+  }
+  window.onload = function() {
+
+    var searchIcon = document.getElementById('inplaceSearchDiv_WPQ1_lsimg');
+
+    // search icon click event listener
+    document.getElementById('inplaceSearchDiv_WPQ1_lsimg').addEventListener('click', function(event) {
+      console.log(searchIcon.classList.contains('ms-inlineSearch-cancelImgHover'));
+      console.log(searchIcon.classList[0]);
+      if (searchIcon.classList.contains('ms-inlineSearch-cancelImgHover')) {
+        console.log('clear search');
+        document.getElementById('pcabtable').innerHTML = '';
+        var leftDiv = document.getElementById('vcabtable');
+        leftDiv.classList.remove('search');
+        leftDiv.classList.add('cleared');
+        document.getElementById('pcabtable').classList.remove('search');
+        document.getElementById('pcabtable').classList.add('pcabcleared');
+        document.getElementById('pcabtable').classList.remove('showing');
+      } else {
+        var userInput = document.getElementById('inplaceSearchDiv_WPQ1_lsinput').value;
+        if (userInput === '') {
+          return;
+        }
+        var urlPath = window.location.pathname.split('/');
+        var customerNumber = urlPath[2];
+
+        sendSearchAllQuery(userInput, customerNumber);
+      }
+      //console.log("click!!!!");
+    });
+
+    // search bar keypress enter listener
+    document.getElementById('inplaceSearchDiv_WPQ1_lsinput').addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        var userInput = document.getElementById('inplaceSearchDiv_WPQ1_lsinput').value;
+        //console.log(userInput);
+        if (userInput === '') {
+
+          return;
+        }
+        var urlPath = window.location.pathname.split('/');
+        var customerNumber = urlPath[2];
+        //document.getElementById('inplaceSearchDiv_WPQ1_lsinput').innerText = userInput;
+        sendSearchAllQuery(userInput, customerNumber);
+      }
+    });
+  }
+
+&lt;/script&gt;</property>
+        <property name="CatalogIconImageUrl" type="string" />
+        <property name="Title" type="string">PCab_Search_wPagination</property>
+        <property name="AllowHide" type="bool">True</property>
+        <property name="AllowMinimize" type="bool">True</property>
+        <property name="AllowZoneChange" type="bool">True</property>
+        <property name="TitleUrl" type="string" />
+        <property name="ChromeType" type="chrometype">None</property>
+        <property name="AllowConnect" type="bool">True</property>
+        <property name="Width" type="unit" />
+        <property name="Height" type="unit" />
+        <property name="HelpMode" type="helpmode">Navigate</property>
+        <property name="AllowEdit" type="bool">True</property>
+        <property name="TitleIconImageUrl" type="string" />
+        <property name="Direction" type="direction">NotSet</property>
+        <property name="AllowClose" type="bool">True</property>
+        <property name="ChromeState" type="chromestate">Normal</property>
+      </properties>
+    </data>
+  </webPart>
+</webParts>
